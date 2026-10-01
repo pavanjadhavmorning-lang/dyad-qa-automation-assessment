@@ -3,6 +3,7 @@ import { RegisterPage } from "../../src/pages/parabank/RegisterPage";
 import { OpenAccountPage } from "../../src/pages/parabank/OpenAccountPage";
 import { AccountOverviewPage } from "../../src/pages/parabank/AccountOverviewPage";
 import { TransferFundsPage } from "../../src/pages/parabank/TransferFundsPage";
+import { TransactionPage } from "../../src/pages/parabank/TransactionPage";
 import { generateUniqueUser } from "../../test-data/parabankData";
 import dotenv from "dotenv";
 
@@ -19,6 +20,7 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
     const openAccountPage = new OpenAccountPage(page);
     const accountOverviewPage = new AccountOverviewPage(page);
     const transferFundsPage = new TransferFundsPage(page);
+    const transactionPage = new TransactionPage(page);
 
     await page.goto(`${process.env.PARABANK_BASE_URL}/parabank/register.htm`);
 
@@ -32,14 +34,14 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
       ),
     ).toBeVisible();
 
-    await page.getByRole("link", { name: "Open New Account" }).click();
+    await openAccountPage.open();
 
     const accountA = await openAccountPage.openNewAccount("CHECKING");
 
     await expect(page.getByText("Account Opened!")).toBeVisible();
     expect(accountA).not.toBe("");
 
-    await page.getByRole("link", { name: "Open New Account" }).click();
+    await openAccountPage.open();
 
     const accountB = await openAccountPage.openNewAccount("SAVINGS");
 
@@ -48,7 +50,7 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
 
     expect(accountA).not.toBe(accountB);
 
-    await page.getByRole("link", { name: "Accounts Overview" }).click();
+    await accountOverviewPage.open();
 
     const balanceABefore = await accountOverviewPage.getBalance(accountA);
     const balanceBBefore = await accountOverviewPage.getBalance(accountB);
@@ -57,21 +59,26 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
     expect(balanceBBefore).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(balanceABefore)).toBe(true);
     expect(Number.isFinite(balanceBBefore)).toBe(true);
-
     expect(balanceABefore).toBeGreaterThanOrEqual(transferAmount);
 
-    await page.getByRole("link", { name: "Transfer Funds" }).click();
+    await transferFundsPage.open();
 
     await transferFundsPage.transferFunds(transferAmount, accountA, accountB);
 
-    await expect(page.getByText(/Transfer Complete/i)).toBeVisible();
+    await transferFundsPage.verifyTransferComplete();
 
-    await page.getByRole("link", { name: "Accounts Overview" }).click();
+    await accountOverviewPage.open();
 
     const balanceAAfter = await accountOverviewPage.getBalance(accountA);
     const balanceBAfter = await accountOverviewPage.getBalance(accountB);
 
     expect(balanceAAfter).toBe(balanceABefore - transferAmount);
     expect(balanceBAfter).toBe(balanceBBefore + transferAmount);
+
+    await transactionPage.open();
+
+    await transactionPage.verifyPageLoaded();
+
+    await transactionPage.selectAccount(accountA);
   });
 });
