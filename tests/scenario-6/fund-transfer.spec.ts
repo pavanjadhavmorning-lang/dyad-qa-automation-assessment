@@ -130,7 +130,70 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
       );
 
     expect(accountBTransferCount).toBe(1);
+  });
 
-    //await page.pause();
+  test("should reject transfer greater than available balance", async ({
+    page,
+  }) => {
+    const user = generateUniqueUser();
+
+    const registerPage = new RegisterPage(page);
+    const openAccountPage = new OpenAccountPage(page);
+    const accountOverviewPage = new AccountOverviewPage(page);
+    const transferFundsPage = new TransferFundsPage(page);
+
+    await page.goto(`${process.env.PARABANK_BASE_URL}/parabank/register.htm`);
+
+    await expect(page).toHaveTitle(/ParaBank/);
+
+    await registerPage.registerUser(user);
+
+    await expect(
+      page.getByText(
+        "Your account was created successfully. You are now logged in.",
+      ),
+    ).toBeVisible();
+
+    await openAccountPage.open();
+
+    const accountA = await openAccountPage.openNewAccount("CHECKING");
+
+    await expect(page.getByText("Account Opened!")).toBeVisible();
+    expect(accountA).not.toBe("");
+
+    await openAccountPage.open();
+
+    const accountB = await openAccountPage.openNewAccount("SAVINGS");
+
+    await expect(page.getByText("Account Opened!")).toBeVisible();
+    expect(accountB).not.toBe("");
+
+    expect(accountA).not.toBe(accountB);
+
+    await accountOverviewPage.open();
+
+    const balanceABefore = await accountOverviewPage.getBalance(accountA);
+    const balanceBBefore = await accountOverviewPage.getBalance(accountB);
+
+    expect(balanceABefore).toBeGreaterThanOrEqual(0);
+    expect(balanceBBefore).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(balanceABefore)).toBe(true);
+    expect(Number.isFinite(balanceBBefore)).toBe(true);
+
+    const invalidTransferAmount = balanceABefore + 1;
+
+    expect(invalidTransferAmount).toBeGreaterThan(balanceABefore);
+
+    await transferFundsPage.open();
+
+    await transferFundsPage.transferFunds(
+      invalidTransferAmount,
+      accountA,
+      accountB,
+    );
+
+    await expect(
+      page.getByText("Transfer Complete!", { exact: true }),
+    ).not.toBeVisible();
   });
 });
