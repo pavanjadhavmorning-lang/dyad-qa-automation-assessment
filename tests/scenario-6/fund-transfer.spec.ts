@@ -16,6 +16,14 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
     const user = generateUniqueUser();
     const transferAmount = 50;
 
+    const today = new Date();
+
+    const expectedTransactionDate = [
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0"),
+      today.getFullYear(),
+    ].join("-");
+
     const registerPage = new RegisterPage(page);
     const openAccountPage = new OpenAccountPage(page);
     const accountOverviewPage = new AccountOverviewPage(page);
@@ -80,5 +88,49 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
     await transactionPage.verifyPageLoaded();
 
     await transactionPage.selectAccount(accountA);
+
+    await transactionPage.searchByAmount(transferAmount);
+
+    const accountATransaction = await transactionPage.getTransactionRow();
+
+    expect(accountATransaction.description).toBe("Funds Transfer Sent");
+    expect(accountATransaction.debit).toBe("$50.00");
+    expect(accountATransaction.credit).toBe("");
+    expect(accountATransaction.date).toBe(expectedTransactionDate);
+
+    const accountATransferCount =
+      await transactionPage.getMatchingTransferCount(
+        "Funds Transfer Sent",
+        "$50.00",
+        expectedTransactionDate,
+      );
+
+    expect(accountATransferCount).toBe(1);
+
+    await transactionPage.open();
+
+    await transactionPage.verifyPageLoaded();
+
+    await transactionPage.selectAccount(accountB);
+
+    await transactionPage.searchByAmount(transferAmount);
+
+    const accountBTransaction = await transactionPage.getTransactionRow();
+
+    expect(accountBTransaction.description).toBe("Funds Transfer Received");
+    expect(accountBTransaction.debit).toBe("");
+    expect(accountBTransaction.credit).toBe("$50.00");
+    expect(accountBTransaction.date).toBe(expectedTransactionDate);
+
+    const accountBTransferCount =
+      await transactionPage.getMatchingTransferCount(
+        "Funds Transfer Received",
+        "$50.00",
+        expectedTransactionDate,
+      );
+
+    expect(accountBTransferCount).toBe(1);
+
+    //await page.pause();
   });
 });
