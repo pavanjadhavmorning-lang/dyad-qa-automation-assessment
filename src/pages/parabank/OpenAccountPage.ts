@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 
 export class OpenAccountPage {
   private readonly openNewAccountLink;
@@ -22,11 +22,11 @@ export class OpenAccountPage {
   }
 
   async openNewAccount(accountType: "CHECKING" | "SAVINGS"): Promise<string> {
-    await this.accountType.selectOption(accountType);
+    await this.accountType.selectOption({ label: accountType });
 
-    await this.fromAccount.selectOption({
-      index: 0,
-    });
+    await expect(this.accountType).toHaveValue(
+      accountType === "CHECKING" ? "0" : "1",
+    );
 
     await this.openAccountButton.click();
 

@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 
 export class TransactionPage {
   private readonly findTransactionsLink;
@@ -7,6 +7,12 @@ export class TransactionPage {
   private readonly amountInput;
   private readonly findByAmountButton;
   private readonly transactionTable;
+  private readonly transactionDetailsHeading;
+  private readonly transactionId;
+  private readonly transactionDate;
+  private readonly transactionDescription;
+  private readonly transactionType;
+  private readonly transactionAmount;
 
   constructor(private readonly page: Page) {
     this.findTransactionsLink = page.getByRole("link", {
@@ -19,6 +25,15 @@ export class TransactionPage {
     this.amountInput = page.locator("#amount");
     this.findByAmountButton = page.locator("#findByAmount");
     this.transactionTable = page.locator("#transactionTable");
+
+    this.transactionDetailsHeading = page.getByRole("heading", {
+      name: "Transaction Details",
+    });
+    this.transactionId = page.getByText("Transaction ID:");
+    this.transactionDate = page.getByText("Date:");
+    this.transactionDescription = page.getByText("Description:");
+    this.transactionType = page.getByText("Type:");
+    this.transactionAmount = page.getByText("Amount:");
   }
 
   async open(): Promise<void> {
@@ -30,7 +45,8 @@ export class TransactionPage {
   }
 
   async selectAccount(accountNumber: string): Promise<void> {
-    await this.accountSelect.selectOption(accountNumber);
+    await this.accountSelect.selectOption({ label: accountNumber });
+    await expect(this.accountSelect).toHaveValue(accountNumber);
   }
 
   async searchByAmount(amount: number): Promise<void> {
@@ -90,5 +106,75 @@ export class TransactionPage {
     }
 
     return matchingCount;
+  }
+
+  async openMatchingTransaction(
+    description: string,
+    amount: string,
+    date: string,
+  ): Promise<void> {
+    const rows = this.transactionTable.locator("tbody tr");
+    const rowCount = await rows.count();
+
+    for (let i = 0; i < rowCount; i++) {
+      const row = rows.nth(i);
+      const cells = row.locator("td");
+
+      const rowDate = (await cells.nth(0).textContent())?.trim() ?? "";
+      const rowDescription = (await cells.nth(1).textContent())?.trim() ?? "";
+      const rowDebit = (await cells.nth(2).textContent())?.trim() ?? "";
+      const rowCredit = (await cells.nth(3).textContent())?.trim() ?? "";
+
+      const rowAmount = rowDebit || rowCredit;
+
+      if (
+        rowDate === date &&
+        rowDescription === description &&
+        rowAmount === amount
+      ) {
+        await cells.nth(1).getByRole("link").click();
+        await this.transactionDetailsHeading.waitFor({ state: "visible" });
+        return;
+      }
+    }
+
+    throw new Error(
+      `Transaction not found: ${description}, ${amount}, ${date}`,
+    );
+  }
+
+  async getTransactionDetails(): Promise<{
+    transactionId: string;
+    date: string;
+    description: string;
+    type: string;
+    amount: string;
+  }> {
+    await this.transactionDetailsHeading.waitFor({ state: "visible" });
+
+    const getDetailValue = async (label: string): Promise<string> => {
+      const labelCell = this.page
+        .locator("td")
+        .filter({
+          hasText: label,
+        })
+        .first();
+
+      return (
+        (
+          await labelCell
+            .locator("xpath=following-sibling::td[1]")
+            .textContent()
+        )?.trim() ?? ""
+      );
+    };
+
+    return {
+      transactionId: await getDetailValue("Transaction ID:"),
+      date: await getDetailValue("Date:"),
+      description: await getDetailValue("Description:"),
+      type: await getDetailValue("Type:"),
+      amount: await getDetailValue("Amount:"),
+    };
   }
 }

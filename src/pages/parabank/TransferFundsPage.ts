@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 
 export class TransferFundsPage {
   private readonly transferFundsLink;
@@ -29,8 +29,13 @@ export class TransferFundsPage {
     toAccount: string,
   ): Promise<void> {
     await this.amount.fill(amount.toString());
-    await this.fromAccount.selectOption(fromAccount);
-    await this.toAccount.selectOption(toAccount);
+
+    await this.fromAccount.selectOption({ label: fromAccount });
+    await expect(this.fromAccount).toHaveValue(fromAccount);
+
+    await this.toAccount.selectOption({ label: toAccount });
+    await expect(this.toAccount).toHaveValue(toAccount);
+
     await this.transferButton.click();
   }
 

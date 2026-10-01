@@ -16,12 +16,13 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
     const user = generateUniqueUser();
     const transferAmount = 50;
 
-    const today = new Date();
+    const transactionDate = new Date();
+    transactionDate.setDate(transactionDate.getDate() - 1);
 
     const expectedTransactionDate = [
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0"),
-      today.getFullYear(),
+      String(transactionDate.getMonth() + 1).padStart(2, "0"),
+      String(transactionDate.getDate()).padStart(2, "0"),
+      transactionDate.getFullYear(),
     ].join("-");
 
     const registerPage = new RegisterPage(page);
@@ -93,10 +94,10 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
 
     const accountATransaction = await transactionPage.getTransactionRow();
 
+    expect(accountATransaction.date).toBe(expectedTransactionDate);
     expect(accountATransaction.description).toBe("Funds Transfer Sent");
     expect(accountATransaction.debit).toBe("$50.00");
     expect(accountATransaction.credit).toBe("");
-    expect(accountATransaction.date).toBe(expectedTransactionDate);
 
     const accountATransferCount =
       await transactionPage.getMatchingTransferCount(
@@ -106,6 +107,21 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
       );
 
     expect(accountATransferCount).toBe(1);
+
+    await transactionPage.openMatchingTransaction(
+      "Funds Transfer Sent",
+      "$50.00",
+      expectedTransactionDate,
+    );
+
+    const accountATransactionDetails =
+      await transactionPage.getTransactionDetails();
+
+    expect(accountATransactionDetails.transactionId).not.toBe("");
+    expect(accountATransactionDetails.date).toBe(expectedTransactionDate);
+    expect(accountATransactionDetails.description).toBe("Funds Transfer Sent");
+    expect(accountATransactionDetails.type).toBe("Debit");
+    expect(accountATransactionDetails.amount).toBe("$50.00");
 
     await transactionPage.open();
 
@@ -117,10 +133,10 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
 
     const accountBTransaction = await transactionPage.getTransactionRow();
 
+    expect(accountBTransaction.date).toBe(expectedTransactionDate);
     expect(accountBTransaction.description).toBe("Funds Transfer Received");
     expect(accountBTransaction.debit).toBe("");
     expect(accountBTransaction.credit).toBe("$50.00");
-    expect(accountBTransaction.date).toBe(expectedTransactionDate);
 
     const accountBTransferCount =
       await transactionPage.getMatchingTransferCount(
@@ -130,6 +146,23 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
       );
 
     expect(accountBTransferCount).toBe(1);
+
+    await transactionPage.openMatchingTransaction(
+      "Funds Transfer Received",
+      "$50.00",
+      expectedTransactionDate,
+    );
+
+    const accountBTransactionDetails =
+      await transactionPage.getTransactionDetails();
+
+    expect(accountBTransactionDetails.transactionId).not.toBe("");
+    expect(accountBTransactionDetails.date).toBe(expectedTransactionDate);
+    expect(accountBTransactionDetails.description).toBe(
+      "Funds Transfer Received",
+    );
+    expect(accountBTransactionDetails.type).toBe("Credit");
+    expect(accountBTransactionDetails.amount).toBe("$50.00");
   });
 
   test("should reject transfer greater than available balance", async ({
@@ -195,8 +228,6 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
     const transferCompleted = await page
       .getByText("Transfer Complete!", { exact: true })
       .isVisible();
-
-    await accountOverviewPage.open();
 
     await accountOverviewPage.open();
 
