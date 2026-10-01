@@ -192,8 +192,21 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
       accountB,
     );
 
-    await expect(
-      page.getByText("Transfer Complete!", { exact: true }),
-    ).not.toBeVisible();
+    const transferCompleted = await page
+      .getByText("Transfer Complete!", { exact: true })
+      .isVisible();
+
+    await accountOverviewPage.open();
+
+    await accountOverviewPage.open();
+
+    const balanceAAfter = await accountOverviewPage.getBalance(accountA);
+    const balanceBAfter = await accountOverviewPage.getBalance(accountB);
+
+    expect(balanceAAfter).toBe(balanceABefore - invalidTransferAmount);
+
+    expect(balanceBAfter).toBe(balanceBBefore + invalidTransferAmount);
+
+    expect(transferCompleted).toBe(false);
   });
 });
