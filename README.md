@@ -99,12 +99,3 @@ playwright.config.ts
 README.md
 tsconfig.json
 
-## OrangeHRM Test Environment
-
-The OrangeHRM scenario uses the publicly available OrangeHRM demo environment for test execution.
-
-Because this is a public/open-source demo environment, the employee and administrator credentials may change, expire, or become unavailable without notice. Therefore, successful execution of the OrangeHRM tests cannot be guaranteed at all times.
-
-Credentials are maintained locally in the `.env` file and are not committed to the repository.
-
-If the configured credentials are no longer valid, update the credentials in `.env` before running Scenario 7.
