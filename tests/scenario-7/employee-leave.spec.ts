@@ -50,9 +50,24 @@ test.describe("Scenario 7 - Employee Leave Approval", () => {
 
     await leavePage.selectDuration("Half Day - Morning");
 
-    await leavePage.enterComments("Personal work");
+    const comments = `Personal work ${Date.now()}`;
+
+    await leavePage.enterComments(comments);
 
     await leavePage.applyLeave();
-    await page.pause();
+
+    await myLeavePage.openMyLeave();
+
+    const leaveRequest = await myLeavePage.getLeaveRequestDetails(
+      fromDate,
+      "CAN - Bereavement",
+      comments,
+    );
+
+    expect(leaveRequest.date).toContain(fromDate);
+
+    expect(leaveRequest.leaveType).toContain("CAN - Bereavement");
+
+    expect(leaveRequest.comments).toBe(comments);
   });
 });

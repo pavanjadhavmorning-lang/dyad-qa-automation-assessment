@@ -1,8 +1,11 @@
 import { Page, expect } from "@playwright/test";
 
-export type LeaveRange = {
-  fromDate: string;
-  toDate: string;
+export type LeaveRequestDetails = {
+  date: string;
+  leaveType: string;
+  numberOfDays: string;
+  status: string;
+  comments: string;
 };
 
 export class MyLeavePage {
@@ -34,10 +37,18 @@ export class MyLeavePage {
     await expect(this.page.getByText(/Records Found/)).toBeVisible();
   }
 
-  async getExistingLeaveRanges(): Promise<LeaveRange[]> {
+  async getExistingLeaveRanges(): Promise<
+    Array<{
+      fromDate: string;
+      toDate: string;
+    }>
+  > {
     const count = await this.leaveRows.count();
 
-    const leaveRanges: LeaveRange[] = [];
+    const leaveRanges: Array<{
+      fromDate: string;
+      toDate: string;
+    }> = [];
 
     for (let index = 0; index < count; index++) {
       const dateCell = this.leaveRows
@@ -47,18 +58,80 @@ export class MyLeavePage {
 
       const dateText = (await dateCell.innerText()).trim();
 
-      const match = dateText.match(
-        /(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})/,
-      );
+      const match = dateText.match(/(\d{4}-\d{2}-\d{2})/);
 
       if (match) {
         leaveRanges.push({
           fromDate: match[1],
-          toDate: match[2],
+          toDate: match[1],
         });
       }
     }
 
     return leaveRanges;
+  }
+
+  async getLeaveRequestDetails(
+    fromDate: string,
+    leaveType: string,
+    comments: string,
+  ): Promise<LeaveRequestDetails> {
+    const matchingRows = this.leaveRows
+      .filter({ hasText: fromDate })
+      .filter({ hasText: leaveType })
+      .filter({ hasText: comments });
+
+    await expect(matchingRows).toHaveCount(1);
+
+    const row = matchingRows.first();
+
+    const cells = row.locator(".oxd-table-cell");
+
+    const date = (await cells.nth(1).innerText()).trim();
+
+    const actualLeaveType = (await cells.nth(3).innerText()).trim();
+
+    const numberOfDays = (await cells.nth(5).innerText()).trim();
+
+    const status = (await cells.nth(6).innerText()).trim();
+
+    const actualComments = (await cells.nth(7).innerText()).trim();
+
+    expect(date).toContain(fromDate);
+    expect(actualLeaveType).toContain(leaveType);
+    expect(actualComments).toBe(comments);
+
+    return {
+      date,
+      leaveType: actualLeaveType,
+      numberOfDays,
+      status,
+      comments: actualComments,
+    };
+  }
+
+  async openLeaveDetails(
+    fromDate: string,
+    leaveType: string,
+    comments: string,
+  ): Promise<void> {
+    const matchingRows = this.leaveRows
+      .filter({ hasText: fromDate })
+      .filter({ hasText: leaveType })
+      .filter({ hasText: comments });
+
+    await expect(matchingRows).toHaveCount(1);
+
+    const row = matchingRows.first();
+
+    await row.getByRole("button").click();
+
+    const viewLeaveDetails = this.page.getByText("View Leave Details", {
+      exact: true,
+    });
+
+    await expect(viewLeaveDetails).toBeVisible();
+
+    await viewLeaveDetails.click();
   }
 }
