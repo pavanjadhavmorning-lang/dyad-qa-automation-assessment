@@ -2,6 +2,7 @@ import { Page, expect } from "@playwright/test";
 
 export type LeaveRequestDetails = {
   date: string;
+  employeeName: string;
   leaveType: string;
   numberOfDays: string;
   status: string;
@@ -89,6 +90,10 @@ export class MyLeavePage {
 
     const date = (await cells.nth(1).innerText()).trim();
 
+    const employeeName = (await cells.nth(2).innerText())
+      .replace(/\s+/g, " ")
+      .trim();
+
     const actualLeaveType = (await cells.nth(3).innerText()).trim();
 
     const numberOfDays = (await cells.nth(5).innerText()).trim();
@@ -98,11 +103,15 @@ export class MyLeavePage {
     const actualComments = (await cells.nth(7).innerText()).trim();
 
     expect(date).toContain(fromDate);
+    expect(employeeName).toBeTruthy();
     expect(actualLeaveType).toContain(leaveType);
+    expect(numberOfDays).toBeTruthy();
+    expect(status).toBeTruthy();
     expect(actualComments).toBe(comments);
 
     return {
       date,
+      employeeName,
       leaveType: actualLeaveType,
       numberOfDays,
       status,
@@ -124,7 +133,11 @@ export class MyLeavePage {
 
     const row = matchingRows.first();
 
-    await row.getByRole("button").click();
+    const actionsButton = row.getByRole("button");
+
+    await expect(actionsButton).toBeVisible();
+
+    await actionsButton.click();
 
     const viewLeaveDetails = this.page.getByText("View Leave Details", {
       exact: true,
