@@ -1,5 +1,8 @@
 import { test, expect } from "../../src/fixtures/testFixtures";
 import { LoginPage } from "../../src/pages/orangehrm/LoginPage";
+import { LeavePage } from "../../src/pages/orangehrm/LeavePage";
+import { MyLeavePage } from "../../src/pages/orangehrm/MyLeavePage";
+import { getFutureLeaveDates } from "../../test-data/orangeHrmDateUtils";
 import { logTestEnd, logTestStart } from "../../src/hooks/testHooks";
 
 test.describe("Scenario 7 - Employee Leave Approval", () => {
@@ -11,10 +14,15 @@ test.describe("Scenario 7 - Employee Leave Approval", () => {
     logTestEnd(testInfo);
   });
 
-  test("should allow the employee to login successfully", async ({ page }) => {
+  test("should allow the employee to apply for future leave", async ({
+    page,
+  }) => {
     const loginPage = new LoginPage(page);
+    const leavePage = new LeavePage(page);
+    const myLeavePage = new MyLeavePage(page);
 
     const username = process.env.ORANGEHRM_EMPLOYEE_USERNAME;
+
     const password = process.env.ORANGEHRM_EMPLOYEE_PASSWORD;
 
     expect(username).toBeTruthy();
@@ -26,8 +34,25 @@ test.describe("Scenario 7 - Employee Leave Approval", () => {
 
     await loginPage.login(username!, password!);
 
-    await expect(page).toHaveURL(/\/dashboard\//);
-
     await loginPage.verifyDashboardLoaded();
+
+    await myLeavePage.openMyLeave();
+
+    const existingLeaves = await myLeavePage.getExistingLeaveRanges();
+
+    const { fromDate, toDate } = getFutureLeaveDates(existingLeaves);
+
+    await leavePage.openApplyLeave();
+
+    await leavePage.selectLeaveType("CAN - Bereavement");
+
+    await leavePage.selectDates(fromDate, toDate);
+
+    await leavePage.selectDuration("Half Day - Morning");
+
+    await leavePage.enterComments("Personal work");
+
+    await leavePage.applyLeave();
+    await page.pause();
   });
 });

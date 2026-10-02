@@ -9,7 +9,9 @@ export class LoginPage {
   constructor(private readonly page: Page) {
     this.usernameInput = page.locator('input[name="username"]');
     this.passwordInput = page.locator('input[name="password"]');
-    this.loginButton = page.getByRole("button", { name: "Login" });
+    this.loginButton = page.getByRole("button", {
+      name: "Login",
+    });
     this.dashboardHeading = page.getByRole("heading", {
       name: "Dashboard",
     });
