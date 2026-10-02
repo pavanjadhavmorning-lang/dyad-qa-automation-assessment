@@ -1,37 +1,30 @@
-import { test, expect } from "@playwright/test";
-import { RegisterPage } from "../../src/pages/parabank/RegisterPage";
-import { OpenAccountPage } from "../../src/pages/parabank/OpenAccountPage";
-import { AccountOverviewPage } from "../../src/pages/parabank/AccountOverviewPage";
-import { TransferFundsPage } from "../../src/pages/parabank/TransferFundsPage";
-import { TransactionPage } from "../../src/pages/parabank/TransactionPage";
+import { test, expect } from "../../src/fixtures/testFixtures";
 import { generateUniqueUser } from "../../test-data/parabankData";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { getCurrentDate } from "../../test-data/dateUtils";
+import { logTestEnd, logTestStart } from "../../src/hooks/testHooks";
 
 test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
+  test.beforeEach(async ({}, testInfo) => {
+    logTestStart(testInfo);
+  });
+
+  test.afterEach(async ({}, testInfo) => {
+    logTestEnd(testInfo);
+  });
+
   test("should register user, create two accounts, transfer funds and audit balances", async ({
     page,
+    registerPage,
+    openAccountPage,
+    accountOverviewPage,
+    transferFundsPage,
+    transactionPage,
   }) => {
     const user = generateUniqueUser();
     const transferAmount = 50;
+    const expectedTransactionDate = getCurrentDate("MM-DD-YYYY");
 
-    const transactionDate = new Date();
-    transactionDate.setDate(transactionDate.getDate() - 1);
-
-    const expectedTransactionDate = [
-      String(transactionDate.getMonth() + 1).padStart(2, "0"),
-      String(transactionDate.getDate()).padStart(2, "0"),
-      transactionDate.getFullYear(),
-    ].join("-");
-
-    const registerPage = new RegisterPage(page);
-    const openAccountPage = new OpenAccountPage(page);
-    const accountOverviewPage = new AccountOverviewPage(page);
-    const transferFundsPage = new TransferFundsPage(page);
-    const transactionPage = new TransactionPage(page);
-
-    await page.goto(`${process.env.PARABANK_BASE_URL}/parabank/register.htm`);
+    await page.goto("/parabank/register.htm");
 
     await expect(page).toHaveTitle(/ParaBank/);
 
@@ -167,15 +160,14 @@ test.describe("Scenario 6 - Multi-Account Fund Transfer Audit", () => {
 
   test("should reject transfer greater than available balance", async ({
     page,
+    registerPage,
+    openAccountPage,
+    accountOverviewPage,
+    transferFundsPage,
   }) => {
     const user = generateUniqueUser();
 
-    const registerPage = new RegisterPage(page);
-    const openAccountPage = new OpenAccountPage(page);
-    const accountOverviewPage = new AccountOverviewPage(page);
-    const transferFundsPage = new TransferFundsPage(page);
-
-    await page.goto(`${process.env.PARABANK_BASE_URL}/parabank/register.htm`);
+    await page.goto("/parabank/register.htm");
 
     await expect(page).toHaveTitle(/ParaBank/);
 
