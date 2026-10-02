@@ -7,14 +7,19 @@ export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  retries: 3,
   workers: 1,
+
   reporter: [["list"], ["html", { open: "never" }]],
+
   timeout: 120000,
+
   expect: {
     timeout: 15000,
   },
+
   use: {
+    baseURL: process.env.PARABANK_BASE_URL,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     video: "retain-on-failure",
@@ -22,6 +27,7 @@ export default defineConfig({
     actionTimeout: 30000,
     navigationTimeout: 30000,
   },
+
   projects: [
     {
       name: "chromium",
